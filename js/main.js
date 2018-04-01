@@ -60,13 +60,16 @@ function onWindowResize() {
   camera.aspect = WIDTH / HEIGHT;
   camera.updateProjectionMatrix();
   renderer.setSize(WIDTH, HEIGHT);
+
+  var speed = document.getElementById("btnReset").offsetLeft + document.getElementById("btnReset").clientWidth - document.getElementById("btnSpeed").offsetLeft;
+  document.getElementById("btnSpeed").style.width = speed + 'px';
+
   var h = window.innerHeight;
   h -= document.getElementById("logo").offsetHeight;
   h -= document.getElementsByTagName("canvas")[0].offsetHeight;
   h -= document.getElementById("panel").offsetHeight;
   h -= 10 * 4 * 2; // #badtrick
-  h += 'px';
-  document.getElementById("log").style.height = h;
+  document.getElementById("log").style.height = h + 'px';
 }
 var render = function () {
   requestAnimationFrame(render);
@@ -76,3 +79,7 @@ var render = function () {
 };
 
 render();
+
+
+  // todo: add new UI.*
+  // fix h

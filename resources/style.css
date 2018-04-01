@@ -28,10 +28,13 @@ canvas {
 	color: white;
 	font-family: monospace;
 	font-size: 9pt;
-	box-shadow: 0px 0px 10px 10px #ccc;
+	box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.23);
 	margin: 10px auto;
 }
 #status-wrapper {
 	display: inline;
 	padding: 10px;
+}
+#btnSpeed {
+	margin: 5px 0;
 }

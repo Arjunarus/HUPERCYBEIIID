@@ -13,14 +13,19 @@
 	<div id="logo"></div>
 	<div id="renderer"></div>
 	<div id="panel">
-		<input type="button" value="Stop/Play" id="btnStop" class="pure-button" />
+		<input type="button" value="Pause" id="btnPause" class="pure-button" />
 		<input type="button" value="Toggle animation" id="btnAnim" class="pure-button" />
 		<input type="button" value="Save state" id="btnSave" class="pure-button" />
 		<input type="button" value="Load state" id="btnLoad" class="pure-button" />
+		<input type="button" value="Reset" id="btnReset" class="pure-button" />
 		<div id="status-wrapper">
 			Status:
 			<span>OK</span>
 		</div>
+
+		<br> Speed:
+		<input type="range" min="1" max="100" value="50" id="btnSpeed" />
+
 	</div>
 	<div id="log"></div>
 	<script src="js/three.js"></script>
