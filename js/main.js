@@ -9,6 +9,10 @@ var renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor("#111");
 renderer.setSize(WIDTH, HEIGHT);
 
+var light = new THREE.PointLight(0xaaffff);
+light.position.set(-10, 40, 0);
+scene.add(light);
+
 document.body.replaceChild(renderer.domElement, document.getElementById("renderer"));
 
 // - - -
@@ -43,20 +47,25 @@ class Hypercube { // cube manager & dispatcher
 // - - -
 
 var geometry = new THREE.BoxGeometry(1, 1, 1);
-var material = new THREE.MeshBasicMaterial({ color: "#433F81" });
+var material = new THREE.MeshNormalMaterial({ color: "#433F81" });
 var cube = new THREE.Mesh(geometry, material);
 
 scene.add(cube);
 
-// Render Loop
+window.addEventListener('resize', onWindowResize, false);
+function onWindowResize() {
+  WIDTH = window.innerWidth, HEIGHT = 480;
+  camera.aspect = WIDTH / HEIGHT;
+  camera.updateProjectionMatrix();
+  renderer.setSize(WIDTH, HEIGHT);
+}
 var render = function () {
   requestAnimationFrame(render);
-
   cube.rotation.x += 0.01;
   cube.rotation.y += 0.01;
-
-  // Render the scene
   renderer.render(scene, camera);
 };
 
 render();
+
+
