@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<title>HYPERCUBEIIID</title>
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css">
+	<link rel="stylesheet" href="resources/style.css">
+	<link rel="icon" href="resources/favicon.ico" type="image/x-icon" />
+</head>
+
+<body class="pure-form">
+	<div id="renderer"></div>
+	<div id="panel">
+		<input type="button" value="Stop/Play" id="btnStop" class="pure-button" />
+		<input type="button" value="Toggle animation" id="btnAnim" class="pure-button" />
+		<input type="button" value="Save state" id="btnSave" class="pure-button" />
+		<input type="button" value="Load state" id="btnLoad" class="pure-button" />
+		<div id="status-wrapper">
+			Status:
+			<span>OK</span>
+		</div>
+	</div>
+	<div id="log">cube moved at(23f,123f); lolka
+	</div>
+	<script src="js/three.js"></script>
+	<script src="js/main.js"></script>
+</body>
+
+</html>
