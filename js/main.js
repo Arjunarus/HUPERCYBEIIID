@@ -29,6 +29,11 @@ class Cube {
 }
 class Hypercube { // cube manager & dispatcher
   // cubes[SIZE][SIZE][SIZE]
+  // bridgeCube
+  Hypercube(fullness) {
+    // … 
+    // addBridge
+  }
   isMoveble(cube) { }
   move(cube) { }
   findPath() { }
