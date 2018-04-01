@@ -1,19 +1,21 @@
 "use strict"
 
 var scene = new THREE.Scene();
-var WIDTH = window.innerWidth, HEIGHT = 480;
-var camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
+var WIDTH = 1, HEIGHT = 1;
+var camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
 camera.position.z = 4;
-// var renderer = new THREE.WebGLRenderer({ antialias: false });
+
 var renderer = new THREE.WebGLRenderer({ antialias: true });
+// var renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.setClearColor("#111");
 renderer.setSize(WIDTH, HEIGHT);
+document.body.replaceChild(renderer.domElement, document.getElementById("renderer"));
 
 var light = new THREE.PointLight(0xaaffff);
 light.position.set(-10, 40, 0);
 scene.add(light);
 
-document.body.replaceChild(renderer.domElement, document.getElementById("renderer"));
+onWindowResize();
 
 // - - -
 
@@ -58,6 +60,13 @@ function onWindowResize() {
   camera.aspect = WIDTH / HEIGHT;
   camera.updateProjectionMatrix();
   renderer.setSize(WIDTH, HEIGHT);
+  var h = window.innerHeight;
+  h -= document.getElementById("logo").offsetHeight;
+  h -= document.getElementsByTagName("canvas")[0].offsetHeight;
+  h -= document.getElementById("panel").offsetHeight;
+  h -= 10 * 4 * 2; // #badtrick
+  h += 'px';
+  document.getElementById("log").style.height = h;
 }
 var render = function () {
   requestAnimationFrame(render);
@@ -67,5 +76,3 @@ var render = function () {
 };
 
 render();
-
-
