@@ -1,60 +1,89 @@
 "use strict"
 
-var scene = new THREE.Scene();
-var WIDTH = 1, HEIGHT = 1;
-var camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
-camera.position.z = 4;
+// - - - init 1/2
 
-var renderer = new THREE.WebGLRenderer({ antialias: true });
-// var renderer = new THREE.WebGLRenderer({ antialias: false });
+var scene, camera, renderer, light, controls, WIDTH = 1, HEIGHT = 1;
+var SIZE = 5, TICKRATE, CUBESPEED;
+
+scene = new THREE.Scene();
+camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
+var geometry = new THREE.BoxGeometry(1, 1, 1);
+var material = new THREE.MeshBasicMaterial();
+//var material = new THREE.MeshNormalMaterial();
+camera.position.set(new THREE.Vector3(SIZE / 2, SIZE / 2, 20));
+
+renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor("#111");
 renderer.setSize(WIDTH, HEIGHT);
-document.body.replaceChild(renderer.domElement, document.getElementById("renderer"));
+document.body.replaceChild(renderer.domElement, document.getElementById("renderer")); // todo: msg if !js || !webgl
 
-var light = new THREE.PointLight(0xaaffff);
-light.position.set(-10, 40, 0);
+light = new THREE.PointLight(0xaaffff);
+light.position.set(-10, 0, 10);
 scene.add(light);
 
+window.addEventListener('resize', onWindowResize, false);
 onWindowResize();
 
-// - - -
+controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-var SIZE = 26;
-var TICKRATE, CUBESPEED;
+// - - - classes
 
 class Cube {
   // Numbers[], positions[][3]
   // THREE.cube
-  Cube() {
+  constructor(x, y, z) {
+    //if (x === undefined) x = ...;
+    this.drawwable = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#' + Math.round(Math.random() * 156 + 100).toString(16) + Math.round(Math.random() * 156 + 100).toString(16) + Math.round(Math.random() * 156 + 100).toString(16) }));
+    this.drawwable.position.set(x, y, z);
     // generate Numbers
+
+    y = x;
+
+    this.numbers = [];
+    for (var i = 0; i < 3; i++) {
+      this.numbers.push(Math.ceil(Math.random() * Math.min(9, x)));
+      x -= this.numbers[this.numbers.length - 1];
+    }
+    console.log(this.numbers + ' ' + y);
   }
-  Cube(x, y, z) { }
   getCoordinates() { }
   getNextCoordinates() { }
   move() { }
+  draw() {
+
+  }
 }
 class Hypercube { // cube manager & dispatcher
-  // cubes[SIZE][SIZE][SIZE]
+  // cubes[SIZE+2][SIZE+2][SIZE+2]
   // bridgeCube
-  Hypercube(fullness) {
+  draw() { // ← :/
+  }
+  constructor(fullness) {
+    this.cubes = [];
+    for (var i = 1; i <= SIZE; i++) {
+      for (var j = 1; j <= SIZE; j++) {
+        for (var k = 1; k <= SIZE; k++) {
+          this.cubes.push(new Cube(i, j, k));
+          scene.add(this.cubes[this.cubes.length - 1].drawwable);
+        }
+      }
+    }
     // … 
     // addBridge
   }
   isMoveble(cube) { }
   move(cube) { }
   findPath() { }
-  // draw() ← :/
 }
 
-// - - -
+//- - - main
 
-var geometry = new THREE.BoxGeometry(1, 1, 1);
-var material = new THREE.MeshNormalMaterial({ color: "#433F81" });
-var cube = new THREE.Mesh(geometry, material);
+//var cube = new THREE.Mesh(geometry, material); scene.add(cube);
+var hc = new Hypercube(0);
 
-scene.add(cube);
 
-window.addEventListener('resize', onWindowResize, false);
+// - - - init 2/2
+
 function onWindowResize() {
   WIDTH = window.innerWidth, HEIGHT = 480;
   camera.aspect = WIDTH / HEIGHT;
@@ -73,9 +102,10 @@ function onWindowResize() {
 }
 var render = function () {
   requestAnimationFrame(render);
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
+  //hc.cubes[hc.cubes.length-1].drawwable.rotation.y += 0.01;
+  //cube.rotation.y += 0.01;
   renderer.render(scene, camera);
+  //controls.update();
 };
 
 render();
