@@ -2,48 +2,59 @@
 
 // - - - init 1/2 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-var scene, camera, renderer, light, controls, WIDTH = 1, HEIGHT = 1;
-var SIZE = 6, TICKRATE, CUBESPEED;
+// Settings:
+const FIELD_OF_VIEW = 90;
+const WIDTH = window.innerWidth;
+const HEIGHT = window.innerHeight * 2 / 3;
+const ASPECT_RATIO = WIDTH / HEIGHT;
+const NEAR_CLIPPING_PLANE = 0.1;
+const FAR_CLIPPING_PLANE = 1000;
 
-scene = new THREE.Scene();
-camera = new THREE.PerspectiveCamera(90, WIDTH / HEIGHT, 1, 200);
-var geometry = new THREE.BoxGeometry(1, 1, 1);
-var material = new THREE.MeshBasicMaterial();
+const SHELL_SIZE = 27;
 
-camera.position.x = 3;
-camera.position.y = 3;
-camera.position.z = 10;
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
+camera.position.x = 0;
+camera.position.y = 0;
+camera.position.z = SHELL_SIZE * 2;
 
-renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setClearColor("#111");
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setClearColor("#000000");
 renderer.setSize(WIDTH, HEIGHT);
 document.body.replaceChild(renderer.domElement, document.getElementById("renderer")); // todo: msg if !js || !webgl
 
-light = new THREE.PointLight(0xaaffff);
+var geometry = new THREE.BoxGeometry(1, 1, 1);
+var material = new THREE.MeshBasicMaterial();
+
+var light = new THREE.PointLight(0xaaffff);
 light.position.set(-10, 0, 10);
 scene.add(light);
 
 window.addEventListener('resize', onWindowResize, false);
 onWindowResize();
 
-controls = new THREE.OrbitControls(camera, renderer.domElement);
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 function GetCubeColor()
 {
-    var rColor = (0x11).toString();
-    var gColor = (0x22).toString();
-    var bColor = Math.round(Math.random() * 140 + 50).toString();
+    let rColor = (0x11).toString();
+    let gColor = (0x22).toString();
+    let bColor = Math.round(Math.random() * 140 + 50).toString();
     return "rgba(" + rColor + "," + gColor + "," + bColor + ", 255)";
 }
 
 // - - - classes - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+function SetItemOnScene(item, x, y, z) {
+    item.position.set(x - SHELL_SIZE/2, y - SHELL_SIZE/2, z- SHELL_SIZE/2);
+}
 
 class Cube {
     
     static GetCoord(iteration, cubeNumber) {
         
         if (cubeNumber > 999 || cubeNumber < 0)
-            throw "Incorrect cube number" + cuberNumebr;
+            throw "Incorrect cube number: " + cubeNumber;
         
         // Cube has only 3 iterations
         switch(iteration) {
@@ -72,11 +83,11 @@ class Cube {
         this.position = this.GetCubePosition(0);
         
         this.drawable = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: GetCubeColor() }));
-        this.drawable.position.set(this.position[0], this.position[1], this.position[2]);
+        SetItemOnScene(this.drawable, this.position[0], this.position[1], this.position[2]);
     }
     
     getNumbers() {
-        return this.numbers;
+        return [this.a, this.b, this.c];
     }
     
     getCoordinates() { }
@@ -86,14 +97,24 @@ class Cube {
 }
 
 var CUBES = [[566, 472, 737],
-             [656, 778, 462]
+             [656, 778, 462],
+             [100, 100, 100]
              // Add cubes here
             ]
 
 class Shell {
     // TODO skeleton shell
     constructor() {
-        this.drawable = new THREE.Mesh(new THREE.BoxGeometry(27, 27, 27), new THREE.MeshBasicMaterial())
+        this.drawable = new THREE.Mesh(new THREE.BoxGeometry(SHELL_SIZE, SHELL_SIZE, SHELL_SIZE), 
+                                       new THREE.LineBasicMaterial({
+                                                                    color: 0xffffff,
+                                                                    linewidth: 1,
+                                                                    linecap: 'round', //ignored by WebGLRenderer
+                                                                    linejoin:  'round' //ignored by WebGLRenderer
+                                                                    })
+                                       );
+        this.drawable.material.linewidth = 3;
+        SetItemOnScene(this.drawable, 0, 0, 0);
     }
 }
             
@@ -102,7 +123,7 @@ class Hypercube {
   
     constructor() {
         this.cubes = [];
-        for (var i = 0; i < CUBES.length; ++i) {
+        for (let i = 0; i < CUBES.length; ++i) {
             this.cubes.push(new Cube(CUBES[i][0], CUBES[i][1], CUBES[i][2]));
             scene.add(this.cubes[this.cubes.length - 1].drawable);
         }
@@ -122,29 +143,29 @@ var hc = new Hypercube();
 // - - - init 2/2
 
 function onWindowResize() {
-  WIDTH = window.innerWidth, HEIGHT = 480;
-  camera.aspect = WIDTH / HEIGHT;
-  camera.updateProjectionMatrix();
-  renderer.setSize(WIDTH, HEIGHT);
+  // WIDTH = window.innerWidth, HEIGHT = 480;
+  // camera.aspect = WIDTH / HEIGHT;
+  // camera.updateProjectionMatrix();
+  // renderer.setSize(WIDTH, HEIGHT);
 
-  var speed = document.getElementById("btnReset").offsetLeft + document.getElementById("btnReset").clientWidth - document.getElementById("btnSpeed").offsetLeft;
-  document.getElementById("btnSpeed").style.width = speed + 'px';
+  // var speed = document.getElementById("btnReset").offsetLeft + document.getElementById("btnReset").clientWidth - document.getElementById("btnSpeed").offsetLeft;
+  // document.getElementById("btnSpeed").style.width = speed + 'px';
 
-  var h = window.innerHeight;
-  h -= document.getElementById("logo").offsetHeight;
-  h -= document.getElementsByTagName("canvas")[0].offsetHeight;
-  h -= document.getElementById("panel").offsetHeight;
-  h -= 10 * 4 * 2; // #badtrick
-  document.getElementById("log").style.height = h + 'px';
+  // var h = window.innerHeight;
+  // h -= document.getElementById("logo").offsetHeight;
+  // h -= document.getElementsByTagName("canvas")[0].offsetHeight;
+  // h -= document.getElementById("panel").offsetHeight;
+  // h -= 10 * 4 * 2; // #badtrick
+  // document.getElementById("log").style.height = h + 'px';
 }
-var render = function () {
-  requestAnimationFrame(render);
-  //hc.cubes[hc.cubes.length-1].drawable.rotation.y += 0.01;
-  //cube.rotation.y += 0.01;
-  renderer.render(scene, camera);
-  //controls.update();
-};
 
+function render() {
+  requestAnimationFrame(render);
+  renderer.render(scene, camera);
+  // TODO animate labyrinth
+  
+  //controls.update();
+}
 render();
 
 
