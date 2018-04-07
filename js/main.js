@@ -10,7 +10,9 @@ const ASPECT_RATIO = WIDTH / HEIGHT;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 1000;
 
-const SHELL_SIZE = 27;
+const SHELL_SIZE = 28;
+const CUBE_COLOR = "rgb(22, 22, 200)";
+const SPEED_RATIO = 0.01;
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
@@ -18,16 +20,17 @@ camera.position.x = 0;
 camera.position.y = 0;
 camera.position.z = SHELL_SIZE * 2;
 
-var renderer = new THREE.WebGLRenderer({ antialias: true });
+var renderer = new THREE.WebGLRenderer();
+renderer.alpha = true;
 renderer.setClearColor("#000000");
 renderer.setSize(WIDTH, HEIGHT);
 document.body.replaceChild(renderer.domElement, document.getElementById("renderer")); // todo: msg if !js || !webgl
 
-var geometry = new THREE.BoxGeometry(1, 1, 1);
+var cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
 var material = new THREE.MeshBasicMaterial();
 
-var light = new THREE.PointLight(0xaaffff);
-light.position.set(-10, 0, 10);
+var light = new THREE.PointLight(0xffffff, 0.8);
+light.position.set(10, 10, 50);
 scene.add(light);
 
 window.addEventListener('resize', onWindowResize, false);
@@ -35,18 +38,19 @@ onWindowResize();
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-function GetCubeColor()
-{
-    let rColor = (0x11).toString();
-    let gColor = (0x22).toString();
-    let bColor = Math.round(Math.random() * 140 + 50).toString();
-    return "rgba(" + rColor + "," + gColor + "," + bColor + ", 255)";
-}
-
 // - - - classes - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-function SetItemOnScene(item, x, y, z) {
-    item.position.set(x - SHELL_SIZE/2, y - SHELL_SIZE/2, z- SHELL_SIZE/2);
+function GetDigits(a) {
+    let number = a;
+    let result = [];
+    while (number > 0) {
+        let lastDigit = number % 10;
+        result.push(lastDigit);
+        number -= lastDigit;
+        number /= 10;
+    }
+    
+    return result.reverse();
 }
 
 class Cube {
@@ -56,15 +60,18 @@ class Cube {
         if (cubeNumber > 999 || cubeNumber < 0)
             throw "Incorrect cube number: " + cubeNumber;
         
+        let digits = GetDigits(cubeNumber);
+        
         // Cube has only 3 iterations
         switch(iteration) {
             case 0:
-                return cubeNumber % 10 + (cubeNumber/10) % 10 + (cubeNumber/100) % 10; 
+                return digits[0] + digits[1] + digits[2]; 
             case 1:
-                return 2 * ((cubeNumber/10) % 10) + (cubeNumber/100) % 10; 
+                return 2 * digits[1] + digits[2]; 
             case 2:
-                return (cubeNumber/10) % 10 + 2 *((cubeNumber/100) % 10);
-            default: throw "Incorrect cuber iteration: " + iteration;
+                return digits[1] + 2 * digits[2];
+                
+            default: throw "Incorrect cube iteration: " + iteration;
         }
     }
     
@@ -74,26 +81,53 @@ class Cube {
                 Cube.GetCoord(iteration, this.c)];
     }
     
+    PutCubeInShell(x, y, z) {
+        this.drawable.position.set(
+            this.position[0] - SHELL_SIZE/2, 
+            this.position[1] - SHELL_SIZE/2, 
+            this.position[2] - SHELL_SIZE/2
+        );
+    }
+    
+    GetNextIteration() {
+        return (this.iteration + 1) % 3;
+    }
+    
+    GetNextPosition() {
+        //TODO
+    }
+    
     // Cube is full-described by three numbers (aaa, bbb, ccc)
     constructor(a, b, c) {
         this.a = a;
         this.b = b;
         this.c = c;
+        this.iteration = 0;
+        this.position = this.GetCubePosition(this.iteration);
+        this.targetPosition = this.position;
+        this.movingVector = {
+            x: 0, 
+            y: 0, 
+            z: 0
+        };
         
-        this.position = this.GetCubePosition(0);
-        
-        this.drawable = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: GetCubeColor() }));
-        SetItemOnScene(this.drawable, this.position[0], this.position[1], this.position[2]);
+        this.drawable = new THREE.Mesh(cubeGeometry, new THREE.MeshBasicMaterial({ color: CUBE_COLOR }));
+        console.log("Cube " + a + " " + b + " " + c + ": " + this.position);
+        this.PutCubeInShell(this.position[0], this.position[1], this.position[2]);
+        this.StartMoving(this.GetNextPosition());
     }
     
-    getNumbers() {
-        return [this.a, this.b, this.c];
+    StartMoving(newPosition) {
+        // TODO
     }
     
-    getCoordinates() { }
-    getNextCoordinates() { }
-    move() { }
-    draw() { }
+    Update() {
+        if (this.position != this.targetPosition) {
+            // TODO
+        } else {
+            this.StartMoving(this.GetNextPosition());
+        }
+    }
 }
 
 var CUBES = [[566, 472, 737],
@@ -103,18 +137,17 @@ var CUBES = [[566, 472, 737],
             ]
 
 class Shell {
-    // TODO skeleton shell
     constructor() {
+        this.shellMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffff33, 
+                opacity: 0.2,
+                transparent: true
+        });
+        
         this.drawable = new THREE.Mesh(new THREE.BoxGeometry(SHELL_SIZE, SHELL_SIZE, SHELL_SIZE), 
-                                       new THREE.LineBasicMaterial({
-                                                                    color: 0xffffff,
-                                                                    linewidth: 1,
-                                                                    linecap: 'round', //ignored by WebGLRenderer
-                                                                    linejoin:  'round' //ignored by WebGLRenderer
-                                                                    })
-                                       );
+                                       this.shellMaterial);
+        
         this.drawable.material.linewidth = 3;
-        SetItemOnScene(this.drawable, 0, 0, 0);
     }
 }
             
@@ -131,9 +164,11 @@ class Hypercube {
         scene.add((new Shell()).drawable)
     }
     
-    isMoveble(cube) { }
-    move(cube) { }
-    findPath() { }
+    Update() {
+        for (let i = 0; i < this.cubes.length; ++i) {
+            this.cubes[i].Update();
+        }
+    }
 }
 
 //- - - main - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -159,14 +194,15 @@ function onWindowResize() {
   // document.getElementById("log").style.height = h + 'px';
 }
 
-function render() {
-  requestAnimationFrame(render);
-  renderer.render(scene, camera);
-  // TODO animate labyrinth
-  
+function animate() {
   //controls.update();
+  hc.Update();
+  renderer.render(scene, camera);
+  
+  requestAnimationFrame(animate);
 }
-render();
+
+animate();
 
 
   // todo: add new UI.*
