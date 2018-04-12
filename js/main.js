@@ -18,7 +18,7 @@ var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
 camera.position.x = 0;
 camera.position.y = 0;
-camera.position.z = SHELL_SIZE * 2;
+camera.position.z = SHELL_SIZE * 3;
 
 var renderer = new THREE.WebGLRenderer();
 renderer.alpha = true;
@@ -27,10 +27,28 @@ renderer.setSize(WIDTH, HEIGHT);
 document.body.replaceChild(renderer.domElement, document.getElementById("renderer")); // todo: msg if !js || !webgl
 
 var cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-var material = new THREE.MeshBasicMaterial();
+var cubeMaterial = new THREE.MeshStandardMaterial({
+    color: CUBE_COLOR,
+    shading: THREE.FlatShading,
+    metalness: 0,
+    roughness: 1
+});
 
-var light = new THREE.PointLight(0xffffff, 0.8);
-light.position.set(10, 10, 50);
+var shellGeometry = new THREE.BoxGeometry(SHELL_SIZE, SHELL_SIZE, SHELL_SIZE);
+var shellMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffff33, 
+    opacity: 0.5,
+    transparent: true,
+    shading: THREE.FlatShading,
+    metalness: 0,
+    roughness: 3
+}); 
+    
+var ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+scene.add(ambientLight);
+
+var light = new THREE.PointLight(0xffffff, 1);
+light.position.set(10, 30, 50);
 scene.add(light);
 
 window.addEventListener('resize', onWindowResize, false);
@@ -51,6 +69,31 @@ function GetDigits(a) {
     }
     
     return result.reverse();
+}
+
+// Distance between 2 positions
+function Distance(position1, position2) {
+    let dx = position2.x - position1.x;
+    let dy = position2.y - position1.y;
+    let dz = position2.z - position1.z;
+    return Math.sqrt(dx*dx + dy*dy + dz*dz);
+}
+
+// Moving vector from startPosition to finishPosition
+function MovingVector(startPosition, finishPosition) {
+    return {
+        x: (finishPosition.x - startPosition.x) * SPEED_RATIO,
+        y: (finishPosition.y - startPosition.y) * SPEED_RATIO,
+        z: (finishPosition.z - startPosition.z) * SPEED_RATIO
+    }
+}
+
+function AddVectorToPosition(position, vector) {
+    return {
+        x: position.x + vector.x,
+        y: position.y + vector.y,
+        z: position.z + vector.z
+    }
 }
 
 class Cube {
@@ -76,25 +119,24 @@ class Cube {
     }
     
     GetCubePosition(iteration) {
-        return [Cube.GetCoord(iteration, this.a),
-                Cube.GetCoord(iteration, this.b),
-                Cube.GetCoord(iteration, this.c)];
+        return {
+            x: Cube.GetCoord(iteration, this.a),
+            y: Cube.GetCoord(iteration, this.b),
+            z: Cube.GetCoord(iteration, this.c)
+        };
     }
     
     PutCubeInShell(x, y, z) {
         this.drawable.position.set(
-            this.position[0] - SHELL_SIZE/2, 
-            this.position[1] - SHELL_SIZE/2, 
-            this.position[2] - SHELL_SIZE/2
+            this.position.x - SHELL_SIZE/2, 
+            this.position.y - SHELL_SIZE/2, 
+            this.position.z - SHELL_SIZE/2
         );
     }
     
+    // Iterations for each position in shell
     GetNextIteration() {
-        return (this.iteration + 1) % 3;
-    }
-    
-    GetNextPosition() {
-        //TODO
+        return (this.iteration + 1) % this.positions.length;
     }
     
     // Cube is full-described by three numbers (aaa, bbb, ccc)
@@ -103,51 +145,57 @@ class Cube {
         this.b = b;
         this.c = c;
         this.iteration = 0;
-        this.position = this.GetCubePosition(this.iteration);
+        this.positions = [];
+        
+        // TODO: generate route for cube as positions array
+        for (let i = 0; i < 3; ++i)
+            this.positions.push(this.GetCubePosition(i));
+        
+        this.position = this.positions[0];
         this.targetPosition = this.position;
         this.movingVector = {
-            x: 0, 
-            y: 0, 
+            x: 0,
+            y: 0,
             z: 0
         };
         
-        this.drawable = new THREE.Mesh(cubeGeometry, new THREE.MeshBasicMaterial({ color: CUBE_COLOR }));
+        this.drawable = new THREE.Mesh(cubeGeometry, cubeMaterial);
         console.log("Cube " + a + " " + b + " " + c + ": " + this.position);
-        this.PutCubeInShell(this.position[0], this.position[1], this.position[2]);
-        this.StartMoving(this.GetNextPosition());
+        this.PutCubeInShell(this.position.x, this.position.y, this.position.z);
+        this.StartMoving(this.positions[this.GetNextIteration()]);
+    }
+    
+    IsOnTarget() {
+        return (Distance(this.position, this.targetPosition) <= 0.1);
     }
     
     StartMoving(newPosition) {
-        // TODO
+        this.position = this.positions[this.iteration];
+        this.targetPosition = this.positions[this.GetNextIteration()];
+        this.movingVector = MovingVector(this.position, this.targetPosition);
     }
     
     Update() {
-        if (this.position != this.targetPosition) {
-            // TODO
+        if (this.IsOnTarget()) {
+            this.iteration = this.GetNextIteration();
+            this.StartMoving(this.positions[this.GetNextIteration()]);
         } else {
-            this.StartMoving(this.GetNextPosition());
+            this.position = AddVectorToPosition(this.position, this.movingVector);
         }
+        
+        this.PutCubeInShell(this.position.x, this.position.y, this.position.z);
     }
 }
 
 var CUBES = [[566, 472, 737],
              [656, 778, 462],
-             [100, 100, 100]
+             [120, 120, 120]
              // Add cubes here
             ]
 
 class Shell {
     constructor() {
-        this.shellMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffff33, 
-                opacity: 0.2,
-                transparent: true
-        });
-        
-        this.drawable = new THREE.Mesh(new THREE.BoxGeometry(SHELL_SIZE, SHELL_SIZE, SHELL_SIZE), 
-                                       this.shellMaterial);
-        
-        this.drawable.material.linewidth = 3;
+        this.drawable = new THREE.Mesh(shellGeometry, shellMaterial);
     }
 }
             
