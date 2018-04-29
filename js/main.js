@@ -12,7 +12,7 @@ const FAR_CLIPPING_PLANE = 1000;
 
 const SHELL_SIZE = 28;
 const CUBE_COLOR = "rgb(22, 22, 200)";
-const SPEED_RATIO = 0.01;
+const SPEED_RATIO = 0.05;
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
@@ -56,7 +56,35 @@ onWindowResize();
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-// - - - classes - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - functions - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+function ShellGeometry(size) {
+    var h = size * 0.5;
+    var geometry = new THREE.BufferGeometry();
+    var position = [];
+    // for (let i = 0; i < h; ++i) 
+        // for (let j = 0; j < h; ++j) {
+            // position.push(-h + i, -h,     -h + j, -h + i,  h    , -h + j);
+            // position.push(-h + i, -h + j, -h    , -h + i, -h + j,  h    );
+        // }
+        
+    position.push(
+        -h, -h, -h, -h,  h, -h,
+        -h,  h, -h,  h,  h, -h,
+         h,  h, -h,  h, -h, -h,
+         h, -h, -h, -h, -h, -h,
+        -h, -h,  h, -h,  h,  h,
+        -h,  h,  h,  h,  h,  h,
+         h,  h,  h,  h, -h,  h,
+         h, -h,  h, -h, -h,  h,
+        -h, -h, -h, -h, -h,  h,
+        -h,  h, -h, -h,  h,  h,
+         h,  h, -h,  h,  h,  h,
+         h, -h, -h,  h, -h,  h
+    );
+    geometry.addAttribute('position', new THREE.Float32BufferAttribute(position, 3));
+    return geometry;
+}
 
 function GetDigits(a) {
     let number = a;
@@ -96,6 +124,17 @@ function AddVectorToPosition(position, vector) {
     }
 }
 
+// Function to dereference position from itself
+function CopyPosition(pos) {
+    return {
+        x: pos.x,
+        y: pos.y,
+        z: pos.z
+    };
+}
+
+// - - - classes - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
 class Cube {
     
     static GetCoord(iteration, cubeNumber) {
@@ -134,9 +173,9 @@ class Cube {
         );
     }
     
-    // Iterations for each position in shell
-    GetNextIteration() {
-        return (this.iteration + 1) % this.positions.length;
+    // The move is for each position in the shell
+    GetNextMove() {
+        return (this.move + 1) % this.positions.length;
     }
     
     // Cube is full-described by three numbers (aaa, bbb, ccc)
@@ -144,12 +183,38 @@ class Cube {
         this.a = a;
         this.b = b;
         this.c = c;
-        this.iteration = 0;
+        this.move = 0;
         this.positions = [];
         
-        // TODO: generate route for cube as positions array
-        for (let i = 0; i < 3; ++i)
-            this.positions.push(this.GetCubePosition(i));
+        // TODO: generalize
+        for (let i = 0; i < 3; ++i) {
+            let pos = this.GetCubePosition(i);
+            let nextPos = this.GetCubePosition((i + 1) % 3);
+            
+            let dx = (nextPos.x - pos.x);
+            if (dx != 0) dx /= Math.abs(dx);
+            while (pos.x != nextPos.x) {
+                this.positions.push(pos);
+                pos = CopyPosition(pos)
+                pos.x += dx
+            }
+            
+            let dy = (nextPos.y - pos.y);
+            if (dy != 0) dy /= Math.abs(dy);
+            while (pos.y != nextPos.y) {
+                this.positions.push(pos);
+                pos = CopyPosition(pos)
+                pos.y += dy
+            }
+            
+            let dz = (nextPos.z - pos.z);
+            if (dz != 0) dz /= Math.abs(dz);
+            while (pos.z != nextPos.z) {
+                this.positions.push(pos);
+                pos = CopyPosition(pos)
+                pos.z += dz
+            }
+        }
         
         this.position = this.positions[0];
         this.targetPosition = this.position;
@@ -162,23 +227,23 @@ class Cube {
         this.drawable = new THREE.Mesh(cubeGeometry, cubeMaterial);
         console.log("Cube " + a + " " + b + " " + c + ": " + this.position);
         this.PutCubeInShell(this.position.x, this.position.y, this.position.z);
-        this.StartMoving(this.positions[this.GetNextIteration()]);
+        this.StartMoving(this.positions[this.GetNextMove()]);
     }
     
     IsOnTarget() {
-        return (Distance(this.position, this.targetPosition) <= 0.1);
+        return (Distance(this.position, this.targetPosition) <= SPEED_RATIO);
     }
     
     StartMoving(newPosition) {
-        this.position = this.positions[this.iteration];
-        this.targetPosition = this.positions[this.GetNextIteration()];
+        this.position = this.positions[this.move];
+        this.targetPosition = this.positions[this.GetNextMove()];
         this.movingVector = MovingVector(this.position, this.targetPosition);
     }
     
     Update() {
         if (this.IsOnTarget()) {
-            this.iteration = this.GetNextIteration();
-            this.StartMoving(this.positions[this.GetNextIteration()]);
+            this.move = this.GetNextMove();
+            this.StartMoving(this.positions[this.GetNextMove()]);
         } else {
             this.position = AddVectorToPosition(this.position, this.movingVector);
         }
@@ -189,13 +254,26 @@ class Cube {
 
 var CUBES = [[566, 472, 737],
              [656, 778, 462],
-             [120, 120, 120]
+             [666, 897, 466],
+             [102, 615, 897],
+             [123, 123, 123]
              // Add cubes here
             ]
 
 class Shell {
     constructor() {
-        this.drawable = new THREE.Mesh(shellGeometry, shellMaterial);
+        this.drawable = new THREE.LineSegments(
+            ShellGeometry(SHELL_SIZE), 
+            new THREE.LineDashedMaterial({ 
+                color: 0xffffff, 
+                dashSize: 1, 
+                gapSize: 1, 
+                linewidth: 1 
+            })
+        );
+        this.drawable.computeLineDistances();
+        
+        // this.drawable = new THREE.Mesh(shellGeometry, shellMaterial);
     }
 }
             
